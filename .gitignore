@@ -1,4 +1,10 @@
-venv
-.idea
-__pycache__
+venv/
+__pycache__/
+*.pyc
 .env
+.env.test
+.pytest_cache/
+*.log
+.DS_Store
+pg-booking-data/
+redis-data/
