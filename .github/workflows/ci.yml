@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  # Общие переменные для всех джоб (можно переопределить в каждой)
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Ruff
+        run: ruff check .
+
+  test:
+    name: Run tests (pytest)
+    runs-on: ubuntu-latest
+
+    # Сервисы, которые будут доступны на localhost
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 123gmail
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # (Опционально) Если тестам нужен запущенный Celery worker,
+      # можно раскомментировать следующие строки:
+      # - name: Start Celery worker in background
+      #   env:
+      #     MODE: TEST
+      #     DB_HOST: localhost
+      #     REDIS_HOST: localhost
+      #     # ... остальные переменные
+      #   run: |
+      #     celery --app=src.tasks.celery_app:celery_instance worker -l INFO &
+      #   # Ждём пару секунд для инициализации
+      #   continue-on-error: true
+
+      - name: Run tests
+        env:
+          MODE: TEST
+          DB_NAME: test
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASS: 123gmail
+          DB_HOST: localhost
+          JWT_SECRET_KEY: '6fd715c679a1ae61a88dadd0eef4fb9661fff463f746f022d1de49c2664fe898'
+          JWT_ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+        run: |
+          pytest -v
+
+  # (Опционально) Проверка, что Docker-образ собирается без ошибок
+  docker-build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: booking-app:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
