@@ -1,3 +1,19 @@
 [tool.ruff]
 line-length = 100
 indent-width = 4
+
+# Настройки линтера
+[tool.ruff.lint]
+# Игнорируем B008 для FastAPI (Query, Body, Path в аргументах)
+extend-ignore = ["B008"]
+
+# Можно добавить и другие полезные правила
+# select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+
+# Исключения для конкретных файлов/папок
+[tool.ruff.lint.per-file-ignores]
+# Для всех API-эндпоинтов разрешаем B008 (это стандартная практика FastAPI)
+"src/api/*.py" = ["B008"]
+
+# Для тестов разрешаем ASYNC230 (чтение файлов в асинхронных функциях)
+"tests/*.py" = ["ASYNC230"]

@@ -19,7 +19,7 @@ async def register_user(db: DBDep, data: UserRequestAdd):
 @router.post("/login")
 async def login_user(db: DBDep, data: UserRequestAdd, response: Response):
     hashed_password = AuthService().pwd_context.hash(data.password)
-    new_user_data = UserAdd(email=data.email, hashed_password=hashed_password)
+    UserAdd(email=data.email, hashed_password=hashed_password)
     user = await db.users.get_user_with_hashed_password(email=data.email)
     if not user:
         raise HTTPException(

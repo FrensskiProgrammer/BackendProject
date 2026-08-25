@@ -1,6 +1,8 @@
+from collections.abc import Sequence
+
 from pydantic import BaseModel
 from sqlalchemy import delete, insert, select, update
-from typing import Sequence
+
 
 class BaseRepository:
     model = None

@@ -1,6 +1,7 @@
 import json
+from collections.abc import AsyncGenerator
 from unittest import mock
-from typing import AsyncGenerator
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -47,7 +48,7 @@ async def setup_database():
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
-    with open("tests/mock_hotels.json", encoding="utf-8") as file_hotels:
+    with open("tests/mock_hotels.json", encoding="utf-8") as file_hotels: 
         hotels = json.load(file_hotels)
     with open("tests/mock_rooms.json", encoding="utf-8") as file_rooms:
         rooms = json.load(file_rooms)
@@ -68,7 +69,7 @@ async def register_user(ac, setup_database):
 
 @pytest.fixture(scope="session", autouse=True)
 async def authenticated_ac(register_user, ac):
-    result = await ac.post(
+    await ac.post(
         "/auth/login", json={"email": "example96@gmail.com", "password": "123gmail"}
     )
 
